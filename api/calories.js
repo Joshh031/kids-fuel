@@ -1,8 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
+const Anthropic = require("@anthropic-ai/sdk").default || require("@anthropic-ai/sdk");
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST only" });
   }
@@ -12,7 +10,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing food name" });
   }
 
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured" });
+  }
+
   try {
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
     const msg = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 200,
@@ -33,7 +37,7 @@ Use typical kid-sized portions. Be reasonable and accurate. Round calories to ne
     const data = JSON.parse(text);
     return res.status(200).json(data);
   } catch (err) {
-    console.error("Calorie estimation error:", err);
-    return res.status(500).json({ error: "Failed to estimate calories" });
+    console.error("Calorie estimation error:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to estimate calories" });
   }
-}
+};
